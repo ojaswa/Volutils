@@ -1,0 +1,14 @@
+cmake_minimum_required(VERSION 3.5.0)
+
+project(createRGBA)
+find_package(ITK REQUIRED)
+include(${ITK_USE_FILE})
+if (ITKVtkGlue_LOADED)
+  find_package(VTK REQUIRED)
+  include(${VTK_USE_FILE})
+endif()
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
+set(SOURCE_FILES src/main.cpp src/occlusionspectrum.h src/occlusionspectrum.cpp)
+add_executable(createRGBA ${SOURCE_FILES})
+target_link_libraries(createRGBA ${ITK_LIBRARIES})
