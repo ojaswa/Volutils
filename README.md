@@ -1,4 +1,4 @@
-# volutils
+# Volutils
 Volume Processing Utilities
 
 This package contains the following set of tools:
