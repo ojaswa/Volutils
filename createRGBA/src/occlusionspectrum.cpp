@@ -130,7 +130,7 @@ void OcclusionSpectrum::computeAlphaChannel(UCharImageType::Pointer alphaImage)
     unsigned char val;
     double factor = 255.0/(occ_max - occ_min);
     while(!alphaIt.IsAtEnd()) {
-        val = 255 - (unsigned char)((m_occlusion[i++] - occ_min)*factor);
+        val = (unsigned char)((m_occlusion[i++] - occ_min)*factor);
         alphaIt.Set(val);
         ++alphaIt;
     }

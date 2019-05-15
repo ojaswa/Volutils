@@ -26,7 +26,6 @@
 #include <itkImage.h>
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
-#include <itkRGBToLuminanceImageFilter.h>
 #include <itkRGBAPixel.h>
 #include <itkImageRegionConstIterator.h>
 #include <itkImageRegionIterator.h>
@@ -37,43 +36,52 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-  if(argc < 3) {
-    fprintf(stderr, "Usage %s <input volume file> <output volume file>\nInput formats supported: MHD, NRRD/NHDR, VTK\n", argv[0]);
+  if(argc < 4) {
+    fprintf(stderr, "Usage %s <input gray volume file> <input RGB volume> <output RGBA volume file>\nInput formats supported: MHD, NRRD/NHDR, VTK\n", argv[0]);
     return EXIT_FAILURE;
   }
-  char* inputFilename = argv[1];
-  char* outputFilename = argv[2];
+  char* inputGrayFilename = argv[1];
+  char* inputRGBFilename = argv[2];
+  char* outputRGBAFilename = argv[3];
   //Perform input check and exit if image is not UCHAR, 3-channel
    //TODO:
 
   //Read input RGB image
-  fprintf(stderr, "Reading input image... ");
+  fprintf(stderr, "Reading input images... ");
   constexpr unsigned int Dimension = 3;
   using ComponentType = unsigned char;
+  using UCharImageType = itk::Image<ComponentType, Dimension> ;
   using RGBPixelType = itk::RGBPixel<ComponentType>;
   using RGBImageType = itk::Image<RGBPixelType, Dimension>;
 
-  using ReaderType  = itk::ImageFileReader<RGBImageType>;
-  ReaderType::Pointer reader = ReaderType::New();
-  reader->SetFileName(inputFilename);
-  reader->Update();
-  RGBImageType::Pointer rgbImage = reader->GetOutput();
-  const RGBImageType::SizeType size = rgbImage->GetLargestPossibleRegion().GetSize();
-  fprintf(stderr, "done.\n");
-  fprintf(stderr, "Volume size: %d x %d x %d\n", size[0], size[1], size[2]);
+  //Read gray image
+  using ReaderTypeGray  = itk::ImageFileReader<UCharImageType>;
+  ReaderTypeGray::Pointer readerGray = ReaderTypeGray::New();
+  readerGray->SetFileName(inputGrayFilename);
+  readerGray->Update();
+  UCharImageType::Pointer grayImage = readerGray->GetOutput();
+  const UCharImageType::SizeType sizeGray = grayImage->GetLargestPossibleRegion().GetSize();
 
-  //Convert 3-channel image to grayscale volume
-  fprintf(stderr, "Generating alpha channel... ");
-  using UCharImageType = itk::Image<ComponentType, Dimension> ;
-  using RGB2grayFilterType = itk::RGBToLuminanceImageFilter<RGBImageType, UCharImageType>;
-  RGB2grayFilterType::Pointer rgb2gray = RGB2grayFilterType::New();
-  rgb2gray->SetInput(rgbImage);
+  //Read RGB image
+  using ReaderTypeRGB  = itk::ImageFileReader<RGBImageType>;
+  ReaderTypeRGB::Pointer readerRGB = ReaderTypeRGB::New();
+  readerRGB->SetFileName(inputRGBFilename);
+  readerRGB->Update();
+  RGBImageType::Pointer rgbImage = readerRGB->GetOutput();
+  const RGBImageType::SizeType sizeRGB = rgbImage->GetLargestPossibleRegion().GetSize();
+  if(sizeGray[0] != sizeRGB[0] || sizeGray[1] != sizeRGB[1] || sizeGray[2] != sizeRGB[2])
+  {
+    fprintf(stderr, "Input volume sized do not match. Exiting...\n");
+    return EXIT_FAILURE;
+  }
+  fprintf(stderr, "done.\n");
+  fprintf(stderr, "Volume size: %d x %d x %d\n", sizeRGB[0], sizeRGB[1], sizeRGB[2]);
 
   //Create alpha channel
   UCharImageType::Pointer alphaImage = UCharImageType::New();
-  alphaImage->SetRegions(rgbImage->GetLargestPossibleRegion());
+  alphaImage->SetRegions(grayImage->GetLargestPossibleRegion());
   alphaImage->Allocate();
-  OcclusionSpectrum *occ = new OcclusionSpectrum(rgb2gray->GetOutput());
+  OcclusionSpectrum *occ = new OcclusionSpectrum(grayImage);
   occ->computeAlphaChannel(alphaImage);
 
   //Compose alpha channel with RGB to create RGBA image
@@ -105,7 +113,7 @@ int main(int argc, char **argv)
   fprintf(stderr, "Saving RGBA volume... ");
   using WriterType  = itk::ImageFileWriter<RGBAImageType>;
   WriterType::Pointer writer = WriterType::New();
-  writer->SetFileName(outputFilename);
+  writer->SetFileName(outputRGBAFilename);
   writer->SetInput(rgbaImage);
   writer->Update();
   fprintf(stderr, "done.\n");
