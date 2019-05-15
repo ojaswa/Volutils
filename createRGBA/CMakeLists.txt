@@ -8,6 +8,7 @@ if (ITKVtkGlue_LOADED)
   include(${VTK_USE_FILE})
 endif()
 
+set (CMAKE_CXX_STANDARD 11)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 set(SOURCE_FILES src/main.cpp src/occlusionspectrum.h src/occlusionspectrum.cpp)
 add_executable(createRGBA ${SOURCE_FILES})
